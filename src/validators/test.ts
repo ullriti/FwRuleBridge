@@ -1,6 +1,6 @@
-import { IValidatorInfo } from "../IValidatorInfo";
+import { IValidator, IValidatorInfo } from "../IValidator";
 
-export class Validator {
+export default class TestValidator implements IValidator {
   public info(): IValidatorInfo {
     return {
       name: "Test",
