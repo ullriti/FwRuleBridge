@@ -4,3 +4,7 @@ export interface IModuleInfo {
   description: string;
   inputType: string;
 }
+
+export interface IModule {
+  info(): IModuleInfo;
+}

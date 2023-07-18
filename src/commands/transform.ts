@@ -1,7 +1,7 @@
 import { Argument, Command } from "commander";
 import path from "path";
-import { IModuleInfo } from "../IModuleInfo";
-import { IValidatorInfo } from "../IValidatorInfo";
+import { IModuleInfo } from "../IModule";
+import { IValidatorInfo } from "../IValidator";
 
 export function init(
   availableModules: IModuleInfo[],

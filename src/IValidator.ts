@@ -3,3 +3,7 @@ export interface IValidatorInfo {
   version: string;
   description: string;
 }
+
+export interface IValidator {
+  info(): IValidatorInfo;
+}

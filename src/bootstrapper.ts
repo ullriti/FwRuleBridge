@@ -1,8 +1,9 @@
 import { Command } from "commander";
 import fs from "fs/promises";
 import path from "path";
-import { IModuleInfo } from "./IModuleInfo";
-import { IValidatorInfo } from "./IValidatorInfo";
+import { IModuleInfo } from "./IModule";
+import { IValidatorInfo } from "./IValidator";
+import { Module } from "module";
 
 export class Bootstrapper {
   private readonly program = new Command()
@@ -20,12 +21,6 @@ export class Bootstrapper {
   async run() {
     try {
       await this.loadModules();
-      this.availableModules.push({
-        name: "test",
-        description: "sdsa",
-        version: "sd",
-        inputType: "asda",
-      });
       await this.loadValidators();
       await this.loadCommands();
       this.program.parse(process.argv);
@@ -40,7 +35,8 @@ export class Bootstrapper {
     for (const file of files) {
       const filePath = path.join(this.modulesDir, file);
       if (path.extname(file) === ".js") {
-        const module = require(filePath);
+        const ModuleClass = require(filePath).default;
+        const module = new ModuleClass();
         if (typeof module["info"] === "function") {
           const moduleInfo: IModuleInfo = module.info();
           console.debug("[DEBUG] Loading module:", moduleInfo.name);
@@ -57,8 +53,8 @@ export class Bootstrapper {
     for (const file of files) {
       const filePath = path.join(this.validatorsDir, file);
       if (path.extname(file) === ".js") {
-        const ValidatorClass = require(filePath);
-        const validator = new ValidatorClass.Validator();
+        const ValidatorClass = require(filePath).default;
+        const validator = new ValidatorClass();
         if (typeof validator["info"] === "function") {
           const validatorInfo: IValidatorInfo = validator.info();
           console.debug("[DEBUG] Loading validator:", validatorInfo.name);
