@@ -1,9 +1,9 @@
 import { Command } from "commander";
 import fs from "fs/promises";
 import path from "path";
-import { IModuleInfo } from "./IModule";
-import { IValidatorInfo } from "./IValidator";
-import { Module } from "module";
+import { IModule, IModuleInfo, ModuleResult } from "./IModule";
+import { IValidator, IValidatorInfo, ValidationResult } from "./IValidator";
+import { Ruleset } from "./model/ruleset";
 
 export class Bootstrapper {
   private readonly program = new Command()
@@ -15,8 +15,13 @@ export class Bootstrapper {
   private readonly modulesDir = path.join(__dirname, "modules");
   private readonly validatorsDir = path.join(__dirname, "validators");
 
-  private availableModules: IModuleInfo[] = [];
-  private availableValidators: IValidatorInfo[] = [];
+  private availableModulesInfo: IModuleInfo[] = [];
+  private availableValidatorsInfo: IValidatorInfo[] = [];
+
+  private availableModules: IModule[] = [];
+  private availableValidators: IValidator[] = [];
+
+  private ruleset: Ruleset;
 
   async run() {
     try {
@@ -26,6 +31,103 @@ export class Bootstrapper {
       this.program.parse(process.argv);
     } catch (err) {
       console.error("[ERROR] Error while bootstrapping program:", err);
+    }
+  }
+
+  public runAllValidators(): ValidationResult[] {
+    const validationResults: ValidationResult[] = [];
+
+    console.debug("[DEBUG] running all validators");
+    this.availableValidators.forEach((validator) => {
+      console.debug("[DEBUG] run validator " + validator.info().name);
+      validationResults.push(validator.validate(this.ruleset));
+    });
+
+    return validationResults;
+  }
+
+  public runValidator(validatorName: string): ValidationResult {
+    const validator = this.availableValidators.filter(
+      (validator) => validator.info().name === validatorName
+    );
+
+    if (validator.length < 1) {
+      console.debug("[DEBUG] unkown validator with name: " + validatorName);
+      return {
+        success: false,
+        message: "unknown validator",
+      };
+    } else if (validator.length > 1) {
+      console.debug(
+        "[DEBUG] multiple validators with name " + validatorName + " found"
+      );
+      validator.forEach((module) =>
+        console.debug(
+          "[DEBUG] name=" +
+            module.info().name +
+            ", description=" +
+            module.info().description
+        )
+      );
+      return {
+        success: false,
+        message: "duplicated validator names",
+      };
+    }
+
+    console.debug(
+      "[DEBUG] running validator " +
+        validatorName +
+        " => " +
+        validator[0].info().description
+    );
+    return validator[0].validate(this.ruleset);
+  }
+
+  public runModule(moduleName: string, moduleInput: string): ModuleResult {
+    const module = this.availableModules.filter(
+      (module) => module.info().name === moduleName
+    );
+
+    if (module.length < 1) {
+      console.debug("[DEBUG] unkown module with name: " + moduleName);
+      return {
+        success: false,
+        message: "unknown module",
+      };
+    } else if (module.length > 1) {
+      console.debug(
+        "[DEBUG] multiple modules with name " + moduleName + " found"
+      );
+      module.forEach((module) =>
+        console.debug(
+          "[DEBUG] name=" +
+            module.info().name +
+            ", description=" +
+            module.info().description
+        )
+      );
+      return {
+        success: false,
+        message: "duplicated module names",
+      };
+    }
+
+    console.debug(
+      "[DEBUG] running module " +
+        moduleName +
+        " => " +
+        module[0].info().description
+    );
+    const result = module[0].import(moduleInput);
+    if (!result.data) {
+      return {
+        success: false,
+        message: "no data after import",
+      };
+    } else {
+      this.ruleset = result.data;
+      return result;
     }
   }
 
@@ -40,7 +142,8 @@ export class Bootstrapper {
         if (typeof module["info"] === "function") {
           const moduleInfo: IModuleInfo = module.info();
           console.debug("[DEBUG] Loading module:", moduleInfo.name);
-          this.availableModules.push(moduleInfo);
+          this.availableModulesInfo.push(moduleInfo);
+          this.availableModules.push(module);
         }
       }
     }
@@ -58,7 +161,8 @@ export class Bootstrapper {
         if (typeof validator["info"] === "function") {
           const validatorInfo: IValidatorInfo = validator.info();
           console.debug("[DEBUG] Loading validator:", validatorInfo.name);
-          this.availableValidators.push(validatorInfo);
+          this.availableValidatorsInfo.push(validatorInfo);
+          this.availableValidators.push(validator);
         }
       }
     }
@@ -77,7 +181,10 @@ export class Bootstrapper {
             "[DEBUG] Loading command " + file.split(".js")[0] + "..."
           );
           this.program.addCommand(
-            command.init(this.availableModules, this.availableValidators)
+            command.init(
+              this.availableModulesInfo,
+              this.availableValidatorsInfo
+            )
           );
         }
       }
