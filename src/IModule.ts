@@ -7,7 +7,7 @@ export interface IModuleInfo {
   inputType: string;
 }
 
-export interface ModuleResult {
+export interface IModuleResult {
   success: boolean;
   message: string;
   data?: Ruleset;
@@ -15,5 +15,5 @@ export interface ModuleResult {
 
 export interface IModule {
   info(): IModuleInfo;
-  import(moduleInput: string): ModuleResult;
+  import(moduleInput: string): IModuleResult;
 }

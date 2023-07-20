@@ -1,8 +1,8 @@
 import { Command } from "commander";
 import fs from "fs/promises";
 import path from "path";
-import { IModule, IModuleInfo, ModuleResult } from "./IModule";
-import { IValidator, IValidatorInfo, ValidationResult } from "./IValidator";
+import { IModule, IModuleInfo, IModuleResult } from "./IModule";
+import { IValidator, IValidatorInfo, IValidationResult } from "./IValidator";
 import { Ruleset } from "./model/ruleset";
 
 export class Bootstrapper {
@@ -21,7 +21,7 @@ export class Bootstrapper {
   private availableModules: IModule[] = [];
   private availableValidators: IValidator[] = [];
 
-  private ruleset: Ruleset;
+  private ruleset: Ruleset = new Ruleset();
 
   async run() {
     try {
@@ -34,8 +34,8 @@ export class Bootstrapper {
     }
   }
 
-  public runAllValidators(): ValidationResult[] {
-    const validationResults: ValidationResult[] = [];
+  public runAllValidators(): IValidationResult[] {
+    const validationResults: IValidationResult[] = [];
 
     console.debug("[DEBUG] running all validators");
     this.availableValidators.forEach((validator) => {
@@ -46,7 +46,7 @@ export class Bootstrapper {
     return validationResults;
   }
 
-  public runValidator(validatorName: string): ValidationResult {
+  public runValidator(validatorName: string): IValidationResult {
     const validator = this.availableValidators.filter(
       (validator) => validator.info().name === validatorName
     );
@@ -84,7 +84,7 @@ export class Bootstrapper {
     return validator[0].validate(this.ruleset);
   }
 
-  public runModule(moduleName: string, moduleInput: string): ModuleResult {
+  public runModule(moduleName: string, moduleInput: string): IModuleResult {
     const module = this.availableModules.filter(
       (module) => module.info().name === moduleName
     );

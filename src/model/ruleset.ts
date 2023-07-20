@@ -1,3 +1,1 @@
-export interface Ruleset {
-  no: number;
-}
+export class Ruleset {}

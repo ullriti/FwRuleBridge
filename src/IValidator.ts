@@ -6,12 +6,12 @@ export interface IValidatorInfo {
   description: string;
 }
 
-export interface ValidationResult {
+export interface IValidationResult {
   success: boolean;
   message: string;
 }
 
 export interface IValidator {
   info(): IValidatorInfo;
-  validate(ruleset: Ruleset): ValidationResult;
+  validate(ruleset: Ruleset): IValidationResult;
 }
