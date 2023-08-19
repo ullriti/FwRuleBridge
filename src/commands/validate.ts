@@ -2,10 +2,12 @@ import { Argument, Command, InvalidArgumentError, Option } from "commander";
 import path from "path";
 import { IModuleInfo } from "../IModule";
 import { IValidatorInfo } from "../IValidator";
+import { Bootstrapper } from "../bootstrapper";
 
 export function init(
   availableModules: IModuleInfo[],
-  availableValidators: IValidatorInfo[]
+  availableValidators: IValidatorInfo[],
+  bootstrapper: Bootstrapper
 ) {
   const command = new Command()
     .command("validate")
@@ -43,8 +45,8 @@ export function init(
     )
     .summary("validate ruleset")
     .showHelpAfterError(true)
-    .action((args: string[]) => {
-      console.log("validate");
+    .action((inputModule, input, options, command) => {
+      bootstrapper.runModule(inputModule, input, "import");
     });
 
   console.debug(

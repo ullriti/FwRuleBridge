@@ -4,16 +4,11 @@ export interface IModuleInfo {
   name: string;
   version: string;
   description: string;
-  inputType: string;
-}
-
-export interface IModuleResult {
-  success: boolean;
-  message: string;
-  data?: Ruleset;
+  arguments: string;
 }
 
 export interface IModule {
   info(): IModuleInfo;
-  import(moduleInput: string): IModuleResult;
+  import(moduleArguments: string): Ruleset;
+  export(ruleset: Ruleset, moduleArguments: string): void;
 }

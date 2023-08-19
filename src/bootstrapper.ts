@@ -1,9 +1,10 @@
 import { Command } from "commander";
 import fs from "fs/promises";
 import path from "path";
-import { IModule, IModuleInfo, IModuleResult } from "./IModule";
+import { IModule, IModuleInfo } from "./IModule";
 import { IValidator, IValidatorInfo, IValidationResult } from "./IValidator";
 import { Ruleset } from "./model/ruleset";
+import Module from "./modules/tsi-fw-sheet/module";
 
 export class Bootstrapper {
   private readonly program = new Command()
@@ -24,6 +25,9 @@ export class Bootstrapper {
   private ruleset: Ruleset = new Ruleset();
 
   async run() {
+    const test = new Module();
+    test.easyLoopTest("/tmp/fw.xlsx");
+
     try {
       await this.loadModules();
       await this.loadValidators();
@@ -84,33 +88,19 @@ export class Bootstrapper {
     return validator[0].validate(this.ruleset);
   }
 
-  public runModule(moduleName: string, moduleInput: string): IModuleResult {
+  public runModule(
+    moduleName: string,
+    moduleArguments: string,
+    mode: "import" | "export"
+  ) {
     const module = this.availableModules.filter(
       (module) => module.info().name === moduleName
     );
 
     if (module.length < 1) {
-      console.debug("[DEBUG] unkown module with name: " + moduleName);
-      return {
-        success: false,
-        message: "unknown module",
-      };
+      throw Error("unkown module with name: " + moduleName);
     } else if (module.length > 1) {
-      console.debug(
-        "[DEBUG] multiple modules with name " + moduleName + " found"
-      );
-      module.forEach((module) =>
-        console.debug(
-          "[DEBUG] name=" +
-            module.info().name +
-            ", description=" +
-            module.info().description
-        )
-      );
-      return {
-        success: false,
-        message: "duplicated module names",
-      };
+      throw Error("multiple modules with name " + moduleName + " found");
     }
 
     console.debug(
@@ -119,24 +109,23 @@ export class Bootstrapper {
         " => " +
         module[0].info().description
     );
-    const result = module[0].import(moduleInput);
-    if (!result.data) {
-      return {
-        success: false,
-        message: "no data after import",
-      };
-    } else {
-      this.ruleset = result.data;
-      return result;
+    switch (mode) {
+      case "import":
+        this.ruleset = module[0].import(moduleArguments);
+        break;
+
+      case "export":
+        module[0].export(this.ruleset, moduleArguments);
+        break;
     }
   }
 
   private async loadModules() {
     console.debug("[DEBUG] Loading modules from ", this.modulesDir);
-    const files = await fs.readdir(this.modulesDir);
-    for (const file of files) {
-      const filePath = path.join(this.modulesDir, file);
-      if (path.extname(file) === ".js") {
+    const dirs = await fs.readdir(this.modulesDir);
+    for (const dir of dirs) {
+      const filePath = path.join(this.modulesDir, dir, "module.js");
+      if (path.extname(filePath) === ".js") {
         const ModuleClass = require(filePath).default;
         const module = new ModuleClass();
         if (typeof module["info"] === "function") {
@@ -152,10 +141,10 @@ export class Bootstrapper {
 
   private async loadValidators() {
     console.debug("[DEBUG] Loading validators from ", this.validatorsDir);
-    const files = await fs.readdir(this.validatorsDir);
-    for (const file of files) {
-      const filePath = path.join(this.validatorsDir, file);
-      if (path.extname(file) === ".js") {
+    const dirs = await fs.readdir(this.validatorsDir);
+    for (const dir of dirs) {
+      const filePath = path.join(this.validatorsDir, dir, "validator.js");
+      if (path.extname(filePath) === ".js") {
         const ValidatorClass = require(filePath).default;
         const validator = new ValidatorClass();
         if (typeof validator["info"] === "function") {
@@ -183,7 +172,8 @@ export class Bootstrapper {
           this.program.addCommand(
             command.init(
               this.availableModulesInfo,
-              this.availableValidatorsInfo
+              this.availableValidatorsInfo,
+              this
             )
           );
         }

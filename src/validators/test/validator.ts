@@ -1,5 +1,9 @@
-import { IValidator, IValidatorInfo, IValidationResult } from "../IValidator";
-import { Ruleset } from "../model/ruleset";
+import {
+  IValidator,
+  IValidatorInfo,
+  IValidationResult,
+} from "../../IValidator";
+import { Ruleset } from "../../model/ruleset";
 
 export default class TestValidator implements IValidator {
   public info(): IValidatorInfo {

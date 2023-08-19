@@ -2,10 +2,12 @@ import { Argument, Command } from "commander";
 import path from "path";
 import { IModuleInfo } from "../IModule";
 import { IValidatorInfo } from "../IValidator";
+import { Bootstrapper } from "../bootstrapper";
 
 export function init(
   availableModules: IModuleInfo[],
-  availableValidators: IValidatorInfo[]
+  availableValidators: IValidatorInfo[],
+  bootstrapper: Bootstrapper
 ) {
   const command = new Command()
     .command("transform")

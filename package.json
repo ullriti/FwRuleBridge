@@ -1,13 +1,19 @@
 {
   "scripts": {
-    "build": "npx tsc",
+    "build": "npm clean; npx tsc; npm run copy-files",
+    "clean": "rm -Rf ./dist",
+    "copy-files": "cp ./src/modules/tsi-fw-sheet/template.xlsx ./dist/modules/tsi-fw-sheet/",
     "start": "node dist/app.js"
   },
   "devDependencies": {
+    "@types/cli-progress": "^3.11.0",
     "@types/node": "^20.4.2",
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "commander": "^11.0.0"
+    "cli-progress": "^3.12.0",
+    "commander": "^11.0.0",
+    "xlsx": "^0.18.5",
+    "xlsx-populate": "^1.21.0"
   }
 }
