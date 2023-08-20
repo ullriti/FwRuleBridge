@@ -8,7 +8,7 @@ export interface IModuleInfo {
 }
 
 export interface IModule {
-  info(): Promise<IModuleInfo>;
-  import(moduleArguments: string): Ruleset;
-  export(ruleset: Ruleset, moduleArguments: string): void;
+  info(): IModuleInfo;
+  import(moduleArguments: string): Promise<Ruleset>;
+  export(ruleset: Ruleset, moduleArguments: string): Promise<void>;
 }

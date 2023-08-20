@@ -22,11 +22,11 @@ export class Bootstrapper {
   private availableModules: IModule[] = [];
   private availableValidators: IValidator[] = [];
 
-  private ruleset: Ruleset = new Ruleset();
+  private ruleset: Ruleset = new Ruleset("", [], {});
 
   async run() {
     const test = new Module();
-    await test.easyLoopTest("/tmp/fw.xlsx");
+    console.log((await test.import("/tmp/fw.xlsx")).rules.length);
 
     try {
       await this.loadModules();
@@ -88,7 +88,7 @@ export class Bootstrapper {
     return validator[0].validate(this.ruleset);
   }
 
-  public runModule(
+  public async runModule(
     moduleName: string,
     moduleArguments: string,
     mode: "import" | "export"
@@ -111,11 +111,11 @@ export class Bootstrapper {
     );
     switch (mode) {
       case "import":
-        this.ruleset = module[0].import(moduleArguments);
+        this.ruleset = await module[0].import(moduleArguments);
         break;
 
       case "export":
-        module[0].export(this.ruleset, moduleArguments);
+        await module[0].export(this.ruleset, moduleArguments);
         break;
     }
   }

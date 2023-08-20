@@ -18,7 +18,7 @@ import * as ExcelJS from "exceljs";
 import * as fs from "fs/promises"; // If using Node.js 16 or above
 
 export default class Module implements IModule {
-  public async info(): Promise<IModuleInfo> {
+  public info(): IModuleInfo {
     return {
       name: "TSI-FW-Sheet",
       description:
@@ -33,7 +33,7 @@ export default class Module implements IModule {
     return transform4import(application);
   }
 
-  public async export(ruleset: Ruleset, moduleInput: string): Promise<void> {
+  public async export(ruleset: Ruleset, moduleInput: string) {
     const transformResult = transform4export(ruleset);
     await this.write(
       moduleInput,
