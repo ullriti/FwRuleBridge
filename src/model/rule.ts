@@ -8,7 +8,7 @@ export class Rule {
   target: HostGroup;
   service: Service;
   description: string;
-  tags: [{ [key: string]: string }];
+  tags: { [key: string]: string };
 
   constructor(
     name: string,
@@ -17,7 +17,7 @@ export class Rule {
     target: HostGroup,
     service: Service,
     description: string,
-    tags: [{ [key: string]: string }]
+    tags: { [key: string]: string }
   ) {
     this.name = name;
     this.category = category;
