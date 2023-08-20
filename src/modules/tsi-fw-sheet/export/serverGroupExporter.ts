@@ -1,34 +1,49 @@
-import { WorkBook, WorkSheet } from "xlsx";
+import * as ExcelJS from "exceljs";
 import { ServerGroup } from "../model/serverGroup";
+import {
+  Servergroups_ColumnNumber as columNumber,
+  Servergroups_RowRange as rowRange,
+} from "../utils/xlsxTemplate";
+import { formatDate } from "../utils/helpers";
 
 export function writeServerGroups(
-  workbook: WorkBook,
+  workbook: ExcelJS.Workbook,
   serverGroupList: ServerGroup[]
 ) {
-  const worksheet: WorkSheet = workbook.Sheets["Servergroups"];
-  let row = 4; // start after header
+  const worksheet: ExcelJS.Worksheet = workbook.getWorksheet("Servergroups");
+  let row = rowRange.min; // start after header
   serverGroupList.forEach((value) => {
     // if this is an empty group, then create one line with description
     if (value.members.length === 0) {
-      worksheet[`B${row}`] = { v: value.name };
-      worksheet[`E${row}`] = { v: "add" };
-      worksheet[`H${row}`] = { v: new Date().toDateString() };
-      worksheet[`I${row}`] = { v: "empty group" };
+      worksheet.getRow(row).getCell(columNumber.Servergroupname).value =
+        value.name;
+      worksheet.getRow(row).getCell(columNumber.action).value = "add";
+      worksheet.getRow(row).getCell(columNumber.date).value = formatDate(
+        new Date()
+      );
+      worksheet.getRow(row).getCell(columNumber.description).value =
+        "EMPTY GROUP!";
       row++;
     }
 
     value.members.forEach((member) => {
-      worksheet[`B${row}`] = { v: value.name };
+      worksheet.getRow(row).getCell(columNumber.Servergroupname).value =
+        value.name;
       if (member.member instanceof ServerGroup) {
-        worksheet[`C${row}`] = { v: "" };
-        worksheet[`D${row}`] = { v: member.member.name };
+        worksheet.getRow(row).getCell(columNumber.ipOrNetwork).value = "";
+        worksheet.getRow(row).getCell(columNumber.membername).value =
+          member.member.name;
       } else {
-        worksheet[`C${row}`] = { v: member.member.getIp() };
-        worksheet[`D${row}`] = { v: "" };
+        worksheet.getRow(row).getCell(columNumber.ipOrNetwork).value =
+          member.member.getIp();
+        worksheet.getRow(row).getCell(columNumber.membername).value = "";
       }
-      worksheet[`E${row}`] = { v: "add" };
-      worksheet[`H${row}`] = { v: member.date.toDateString() };
-      worksheet[`I${row}`] = { v: member.description };
+      worksheet.getRow(row).getCell(columNumber.action).value = "add";
+      worksheet.getRow(row).getCell(columNumber.date).value = formatDate(
+        member.date
+      );
+      worksheet.getRow(row).getCell(columNumber.description).value =
+        member.description;
       row++;
     });
   });

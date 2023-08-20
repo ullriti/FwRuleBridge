@@ -1,27 +1,42 @@
-import { WorkBook, WorkSheet } from "xlsx";
+import * as ExcelJS from "exceljs";
 import { Rule } from "../model/rule";
 import { ServerGroup } from "../model/serverGroup";
 import { ServiceGroup } from "../model/serviceGroup";
 import { IpOrNetwork } from "../model/ipOrNetwork";
 import { Service } from "../model/service";
+import {
+  Ruleset_ColumnNumber as columNumber,
+  Ruleset_RowRange as rowRange,
+} from "../utils/xlsxTemplate";
+import { formatDate } from "../utils/helpers";
 
-export function writeRuleSet(workbook: WorkBook, ruleset: Rule[]) {
-  const worksheet: WorkSheet = workbook.Sheets["Firewall Ruleset"];
-  let row = 4; // start after header
+export function writeRuleSet(workbook: ExcelJS.Workbook, ruleset: Rule[]) {
+  const worksheet: ExcelJS.Worksheet =
+    workbook.getWorksheet("Firewall Ruleset");
+  let row = rowRange.min;
   ruleset.forEach((value) => {
-    worksheet[`A${row}`] = { v: getGroupOrValue(value.source) };
-    worksheet[`B${row}`] = { v: getGroupOrValue(value.target) };
+    worksheet.getRow(row).getCell(columNumber.source).value = getGroupOrValue(
+      value.source
+    );
+    worksheet.getRow(row).getCell(columNumber.destination).value =
+      getGroupOrValue(value.target);
     setService(value.service, row, worksheet);
-    worksheet[`E${row}`] = { v: "add" };
-    worksheet[`H${row}`] = { v: value.date.toDateString() };
-    worksheet[`J${row}`] = { v: value.description };
-    worksheet[`K${row}`] = { v: "Protocol-Stack: " + value.protocolStack };
-    worksheet[`L${row}`] = { v: "Category: " + value.category };
-    worksheet[`M${row}`] = { v: "Justification: " + value.justification };
-    worksheet[`N${row}`] = { v: "Secured-By: " + value.securedBy };
-    worksheet[`O${row}`] = {
-      v: "Data-Classification: " + value.dataClassification,
-    };
+    worksheet.getRow(row).getCell(columNumber.action).value = "add";
+    worksheet.getRow(row).getCell(columNumber.date).value = formatDate(
+      value.date
+    );
+    worksheet.getRow(row).getCell(columNumber.description).value =
+      value.description;
+    worksheet.getRow(row).getCell(columNumber.protocolStack).value =
+      "Protocol-Stack: " + value.protocolStack;
+    worksheet.getRow(row).getCell(columNumber.category).value =
+      "Category: " + value.category;
+    worksheet.getRow(row).getCell(columNumber.justification).value =
+      "Justification: " + value.justification;
+    worksheet.getRow(row).getCell(columNumber.securedBy).value =
+      "Secured-By: " + value.securedBy;
+    worksheet.getRow(row).getCell(columNumber.dataClassification).value =
+      "Data-Classification: " + value.dataClassification;
     row++;
   });
 }
@@ -36,13 +51,14 @@ function getGroupOrValue(value: ServerGroup | IpOrNetwork): string {
 function setService(
   value: Service | ServiceGroup,
   row: number,
-  worksheet: WorkSheet
+  worksheet: ExcelJS.Worksheet
 ) {
   if (value instanceof ServiceGroup) {
-    worksheet[`C${row}`] = { v: value.name };
-    worksheet[`D${row}`] = { v: "" };
+    worksheet.getRow(row).getCell(columNumber.portOrMember).value = value.name;
+    worksheet.getRow(row).getCell(columNumber.protocol).value = "";
   } else {
-    worksheet[`C${row}`] = { v: value.port_range };
-    worksheet[`D${row}`] = { v: value.protocol };
+    worksheet.getRow(row).getCell(columNumber.portOrMember).value =
+      value.port_range;
+    worksheet.getRow(row).getCell(columNumber.protocol).value = value.protocol;
   }
 }

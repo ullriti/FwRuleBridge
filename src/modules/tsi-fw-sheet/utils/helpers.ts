@@ -1,13 +1,14 @@
-export function getColumnValue(row: any, keyword: string) {
-  const key = Object.keys(row).find((k) => k.includes(keyword));
-  if (key) {
-    return row[key];
-  } else {
-    return undefined;
-  }
+import * as ExcelJS from "exceljs";
+
+export function getCellValueString(data: ExcelJS.Row, column: number): string {
+  const result = data.getCell(column).value?.toString();
+  return result ? result.trim() : "";
 }
 
-export function getColumnValues(row: any, keyword: string): any[] {
-  const keys = Object.keys(row).filter((k) => k.includes(keyword));
-  return keys.map((key) => row[key]);
+export function formatDate(date: Date): string {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear());
+
+  return `${day}.${month}.${year}`;
 }

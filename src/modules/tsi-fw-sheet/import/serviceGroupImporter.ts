@@ -1,8 +1,12 @@
 import { SingleBar, Presets } from "cli-progress";
-import { WorkBook, utils } from "xlsx";
-import { getColumnValue } from "../utils/helpers";
+import * as ExcelJS from "exceljs";
+import { getCellValueString } from "../utils/helpers";
 import { Service } from "../model/service";
 import { ServiceGroup } from "../model/serviceGroup";
+import {
+  Servicegroups_RowRange as rowRange,
+  Servicegroups_ColumnNumber as columnNumber,
+} from "../utils/xlsxTemplate";
 import { ServiceGroupMember } from "../model/serviceGroupMember";
 
 export class ServiceGroupImporter {
@@ -17,17 +21,19 @@ export class ServiceGroupImporter {
     Presets.shades_classic
   );
 
-  public loadServiceGroups(workbook: WorkBook): {
+  public loadServiceGroups(workbook: ExcelJS.Workbook): {
     serviceGroupList: ServiceGroup[];
     serviceList: Service[];
   } {
-    const serviceGroupSheet = workbook.Sheets["Servicegroups"];
-    const serviceGroupsData = utils.sheet_to_json(serviceGroupSheet, {
-      // ignore header line
-      range: 2,
-    });
+    const serviceGroupSheet = workbook.getWorksheet("Servicegroups");
+    const serviceGroupsData = serviceGroupSheet.getRows(
+      rowRange.min,
+      rowRange.max
+    );
+    if (!serviceGroupsData)
+      throw new Error("Failed to load Rows in Servicegroups");
 
-    // load serviceGroups and Services
+    // Load serviceGroups and Services
     console.info("Loading ServiceGroups...");
     this.progressBar.start(serviceGroupsData.length, 0);
     try {
@@ -51,51 +57,59 @@ export class ServiceGroupImporter {
     };
   }
 
-  private load(serviceGroupsData: unknown[]) {
-    serviceGroupsData.forEach((data: any, index, array) => {
+  private load(serviceGroupsData: ExcelJS.Row[]) {
+    serviceGroupsData.forEach((data, index, array) => {
       this.progressBar.update(index + 1);
 
-      // skip if name is empty
-      if (getColumnValue(data, "Servicegroupname") === "") {
+      const serviceGroupName = data
+        .getCell(columnNumber.Servicegroupname)
+        .value?.toString();
+
+      // Skip if name is empty
+      if (!serviceGroupName) {
         return;
       }
 
-      const name = getColumnValue(data, "Servicegroupname");
-      const date = new Date(getColumnValue(data, "Date"));
-      const description = getColumnValue(data, "Description");
-      const protocol = getColumnValue(data, "Protocol");
-      const port_range = getColumnValue(data, "Port or Port-Range");
+      const name = serviceGroupName.trim();
+      const date = new Date(getCellValueString(data, columnNumber.date));
+      const description = getCellValueString(data, columnNumber.description);
+      const protocol = getCellValueString(data, columnNumber.protocol);
+      const port_range = getCellValueString(data, columnNumber.port_range);
 
-      // ensure ServiceGroup exists
-      let result = this.serviceGroupList.find((value) => value.name === name);
-      if (!result) {
-        result = new ServiceGroup(name, []);
-        this.serviceGroupList.push(result);
+      // Ensure ServiceGroup exists
+      let serviceGroup = this.serviceGroupList.find(
+        (value) => value.name === name
+      );
+      if (!serviceGroup) {
+        serviceGroup = new ServiceGroup(name, []);
+        this.serviceGroupList.push(serviceGroup);
       }
-      const serviceGroup = result;
 
-      // ensure Service exists
+      // Ensure Service exists
       if (protocol) {
-        // create Service if not already present
-        let result: Service | undefined;
+        let service: Service | undefined;
         if (protocol === "ICMP") {
-          result = this.serviceList.find(
+          service = this.serviceList.find(
             (value) => value.protocol === protocol
           );
-        } else {
-          result = this.serviceList.find(
+        } else if (protocol === "TCP" || protocol === "UDP") {
+          service = this.serviceList.find(
             (value) =>
               value.protocol === protocol && value.port_range == port_range
           );
+        } else {
+          throw new Error(
+            "Protocol " +
+              protocol +
+              " is not a valid protocol. [TCP, UDP, ICMP]"
+          );
         }
 
-        if (!result) {
-          result = new Service(protocol, port_range);
-          this.serviceList.push(result);
+        if (!service) {
+          service = new Service(protocol, port_range);
+          this.serviceList.push(service);
         }
-        const service = result;
 
-        // create relation to ServiceGroup
         serviceGroup.members.push(
           new ServiceGroupMember(service, date, description)
         );
@@ -103,41 +117,49 @@ export class ServiceGroupImporter {
     });
   }
 
-  private mapNestedGroups(serviceGroupsData: unknown[]) {
+  private mapNestedGroups(serviceGroupsData: ExcelJS.Row[]) {
     serviceGroupsData.forEach((data, index) => {
       this.progressBar.update(index + 1);
 
-      const memberName = getColumnValue(data, "Membername");
+      const memberName = data
+        .getCell(columnNumber.membername)
+        .value?.toString()
+        .trim();
 
       // Skip if memberName is not defined
       if (!memberName) {
         return;
       }
 
-      // read serviceGroup name from data
-      const name = getColumnValue(data, "Servicegroupname");
-      const date = new Date(getColumnValue(data, "Date"));
-      const description = getColumnValue(data, "Description");
+      // Read serviceGroup name from data
+      const serviceGroupName = getCellValueString(
+        data,
+        columnNumber.Servicegroupname
+      );
+      const date = new Date(getCellValueString(data, columnNumber.date));
+      const description = getCellValueString(data, columnNumber.description);
 
-      // get serviceGroup from list
+      // Get serviceGroup from list
       const serviceGroup = this.serviceGroupList.find(
-        (value) => value.name === name
+        (value) => value.name === serviceGroupName
       );
 
-      // fail if serviceGroup doesnt exist
+      // Fail if serviceGroup doesn't exist
       if (!serviceGroup) {
         throw new Error(
-          "Could not find ServiceGroup " + name + " in serviceGroupList."
+          "Could not find ServiceGroup " +
+            serviceGroupName +
+            " in serviceGroupList."
         );
       }
 
-      // get nested group by memberName
+      // Get nested group by memberName
       const member = this.serviceGroupList.find((sg) => sg.name === memberName);
       if (!member) {
         throw new Error("ServiceGroup " + memberName + " not defined!");
       }
 
-      // add group as member
+      // Add group as member
       serviceGroup.members.push(
         new ServiceGroupMember(member, date, description)
       );

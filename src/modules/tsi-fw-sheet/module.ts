@@ -1,4 +1,3 @@
-import { WorkBook, readFile, writeFile } from "xlsx";
 import { IModule, IModuleInfo } from "../../IModule";
 import { loadApplication } from "./import/applicationImporter";
 import { transform as transform4import } from "./transformer/transformImport";
@@ -15,9 +14,11 @@ import { ServerGroup } from "./model/serverGroup";
 import { ServiceGroup } from "./model/serviceGroup";
 import { writeServiceGroups } from "./export/serviceGroupExporter";
 import { writeRuleSet } from "./export/ruleSetExporter";
+import * as ExcelJS from "exceljs";
+import * as fs from "fs/promises"; // If using Node.js 16 or above
 
 export default class Module implements IModule {
-  public info(): IModuleInfo {
+  public async info(): Promise<IModuleInfo> {
     return {
       name: "TSI-FW-Sheet",
       description:
@@ -27,14 +28,14 @@ export default class Module implements IModule {
     };
   }
 
-  public import(moduleInput: string): Ruleset {
-    const application = this.load(moduleInput).application;
+  public async import(moduleInput: string): Promise<Ruleset> {
+    const application = (await this.load(moduleInput)).application;
     return transform4import(application);
   }
 
-  public export(ruleset: Ruleset, moduleInput: string): void {
+  public async export(ruleset: Ruleset, moduleInput: string): Promise<void> {
     const transformResult = transform4export(ruleset);
-    this.write(
+    await this.write(
       moduleInput,
       transformResult.application,
       transformResult.serverGroups,
@@ -42,11 +43,9 @@ export default class Module implements IModule {
     );
   }
 
-  // easy test which loads all values from a Excel file
-  // and recreates the file with the loaded values
-  public easyLoopTest(moduleInput: string): void {
-    const result = this.load(moduleInput);
-    this.write(
+  public async easyLoopTest(moduleInput: string): Promise<void> {
+    const result = await this.load(moduleInput);
+    await this.write(
       moduleInput,
       result.application,
       result.serverGroups,
@@ -54,30 +53,25 @@ export default class Module implements IModule {
     );
   }
 
-  // extended test which loads a excel file,
-  // transforms data to fwRuleBridge datamodel,
-  // transforms data back to tsi-fw-sheet model
-  // and recreates the input file with the transformed data
-  public transformLoopTest(moduleInput: string): void {
-    this.export(this.import(moduleInput), moduleInput);
+  public async transformLoopTest(moduleInput: string): Promise<void> {
+    const importedRuleset = await this.import(moduleInput);
+    await this.export(importedRuleset, moduleInput);
   }
 
-  private load(moduleInput: string): {
+  private async load(moduleInput: string): Promise<{
     application: Application;
     serverGroups: ServerGroup[];
     serviceGroups: ServiceGroup[];
-  } {
-    const workbook = readFile(moduleInput);
+  }> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(moduleInput);
 
-    // load Services and ServiceGroups
     const result = new ServiceGroupImporter().loadServiceGroups(workbook);
     const serviceGroupList = result.serviceGroupList;
 
-    // load IpOrNetworks and ServerGroups
     const result2 = new ServerGroupImporter().loadServerGroups(workbook);
     const serverGroupList = result2.serverGroupList;
 
-    // load rules
     const result3 = new RuleSetImporter().loadRules(
       workbook,
       serviceGroupList,
@@ -89,7 +83,6 @@ export default class Module implements IModule {
     const ipOrNetworkList = result3.updatedIpOrNetworkList;
     const serviceList = result3.updatedServiceList;
 
-    // load application
     const application = loadApplication(workbook);
     application.ruleset = ruleList;
 
@@ -128,22 +121,21 @@ export default class Module implements IModule {
     };
   }
 
-  private write(
+  private async write(
     moduleInput: string,
     application: Application,
     serverGroups: ServerGroup[],
     serviceGroups: ServiceGroup[]
-  ) {
-    // Load the template workbook
+  ): Promise<void> {
     const templateFilePath = path.join(__dirname, "template.xlsx");
-    const templateWorkbook: WorkBook = readFile(templateFilePath);
+    const templateWorkbook = new ExcelJS.Workbook();
+    await templateWorkbook.xlsx.readFile(templateFilePath);
 
     writeApplication(templateWorkbook, application);
     writeServerGroups(templateWorkbook, serverGroups);
     writeServiceGroups(templateWorkbook, serviceGroups);
     writeRuleSet(templateWorkbook, application.ruleset);
 
-    // Write the result workbook to the specified file path
-    writeFile(templateWorkbook, moduleInput);
+    await templateWorkbook.xlsx.writeFile(moduleInput);
   }
 }

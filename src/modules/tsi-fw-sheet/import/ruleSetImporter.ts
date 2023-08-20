@@ -1,11 +1,15 @@
 import { SingleBar, Presets } from "cli-progress";
-import { WorkBook, utils } from "xlsx";
+import * as ExcelJS from "exceljs";
 import { Rule } from "../model/rule";
 import { ServerGroup } from "../model/serverGroup";
 import { ServiceGroup } from "../model/serviceGroup";
-import { getColumnValue, getColumnValues } from "../utils/helpers";
+import { getCellValueString } from "../utils/helpers";
 import { IpOrNetwork } from "../model/ipOrNetwork";
 import { Service } from "../model/service";
+import {
+  Ruleset_RowRange as rowRange,
+  Ruleset_ColumnNumber as columnNumber,
+} from "../utils/xlsxTemplate";
 
 export class RuleSetImporter {
   private ruleList = new Array<Rule>();
@@ -21,7 +25,7 @@ export class RuleSetImporter {
   );
 
   public loadRules(
-    workbook: WorkBook,
+    workbook: ExcelJS.Workbook,
     serviceGroups: ServiceGroup[],
     serviceList: Service[],
     serverGroups: ServerGroup[],
@@ -31,17 +35,16 @@ export class RuleSetImporter {
     updatedServiceList: Service[];
     updatedIpOrNetworkList: IpOrNetwork[];
   } {
-    const rulesetSheet = workbook.Sheets["Firewall Ruleset"];
-    const rulesetData = utils.sheet_to_json(rulesetSheet, {
-      // remove header line
-      range: 2,
-    });
+    const rulesetSheet = workbook.getWorksheet("Firewall Ruleset");
+    const rulesetData = rulesetSheet.getRows(rowRange.min, rowRange.max);
+    if (!rulesetData)
+      throw new Error("Failed to load Rows in Firewall Ruleset");
 
-    // initialize updated lists
+    // Initialize updated lists
     this.updatedIpOrNetworkList = ipOrNetworkList;
     this.updatedServiceList = serviceList;
 
-    // load rules and update Service and IpOrNetwork List
+    // Load rules and update Service and IpOrNetwork List
     console.info("Loading Firewall Rules...");
     this.progressBar.start(rulesetData.length, 0);
     try {
@@ -58,60 +61,64 @@ export class RuleSetImporter {
   }
 
   private load(
-    rulesetData: unknown[],
+    rulesetData: ExcelJS.Row[],
     serverGroups: ServerGroup[],
     serviceGroups: ServiceGroup[]
   ) {
     rulesetData.forEach((data, index, array) => {
       this.progressBar.update(index + 1);
 
-      // skip if source or destination are not defined
-      if (
-        getColumnValue(data, "Source") === "" ||
-        getColumnValue(data, "Destination") === ""
-      ) {
+      const source = data.getCell(columnNumber.source).value?.toString().trim();
+      const destination = data
+        .getCell(columnNumber.destination)
+        .value?.toString()
+        .trim();
+
+      // Skip if name is empty
+      if (!source || !destination) {
         return;
       }
 
-      // load data and get or create referenced objects
-      const source = this.loadSourceOrDestination(
-        getColumnValue(data, "Source"),
+      const sourceObject = this.loadSourceOrDestination(source, serverGroups);
+      const destinationObject = this.loadSourceOrDestination(
+        destination,
         serverGroups
       );
-      const destination = this.loadSourceOrDestination(
-        getColumnValue(data, "Destination"),
-        serverGroups
-      );
-      const service = this.getServiceOrServiceGroup(
-        getColumnValue(data, "Port, Port-Range or Servicegroup"),
-        getColumnValue(data, "Protocol"),
+
+      const portRange = getCellValueString(data, columnNumber.portOrMember);
+      const protocol = getCellValueString(data, columnNumber.protocol);
+      const serviceOrGroup = this.getServiceOrServiceGroup(
+        portRange,
+        protocol,
         serviceGroups
       );
 
       // load simple data
-      const date = new Date(getColumnValue(data, "Date"));
-      const description = getColumnValue(data, "Description/Comment");
-      const comments = getColumnValues(data, "For your own comments");
+      const date = new Date(getCellValueString(data, columnNumber.date));
+      const description = getCellValueString(data, columnNumber.description);
 
-      // parse comments
-      const protocolStack = comments.find((value) =>
-        value.match("^Protocol-Stack:.*")
+      // read comments
+      const protocolStack = getCellValueString(
+        data,
+        columnNumber.protocolStack
       );
-      const category = comments.find((value) => value.match("^Category:.*"));
-      const justification = comments.find((value) =>
-        value.match("^Justification:.*")
+      const category = getCellValueString(data, columnNumber.category);
+      const justification = getCellValueString(
+        data,
+        columnNumber.justification
       );
-      const securedBy = comments.find((value) => value.match("^Secured-By:.*"));
-      const dataClassification = comments.find((value) =>
-        value.match("^Data-Classification:.*")
+      const securedBy = getCellValueString(data, columnNumber.securedBy);
+      const dataClassification = getCellValueString(
+        data,
+        columnNumber.dataClassification
       );
 
       // create and append rule
       this.ruleList.push(
         new Rule(
-          source,
-          destination,
-          service,
+          sourceObject,
+          destinationObject,
+          serviceOrGroup,
           date,
           description,
           protocolStack,

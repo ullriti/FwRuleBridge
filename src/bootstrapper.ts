@@ -26,7 +26,7 @@ export class Bootstrapper {
 
   async run() {
     const test = new Module();
-    test.easyLoopTest("/tmp/fw.xlsx");
+    await test.easyLoopTest("/tmp/fw.xlsx");
 
     try {
       await this.loadModules();

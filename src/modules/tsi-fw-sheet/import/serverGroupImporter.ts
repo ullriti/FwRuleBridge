@@ -1,8 +1,12 @@
 import { SingleBar, Presets } from "cli-progress";
-import { WorkBook, utils } from "xlsx";
+import * as ExcelJS from "exceljs";
 import { ServerGroup } from "../model/serverGroup";
-import { getColumnValue } from "../utils/helpers";
+import { getCellValueString } from "../utils/helpers";
 import { IpOrNetwork } from "../model/ipOrNetwork";
+import {
+  Servergroups_RowRange as rowRange,
+  Servergroups_ColumnNumber as columnNumber,
+} from "../utils/xlsxTemplate";
 import { ServerGroupMember } from "../model/serverGroupMember";
 
 export class ServerGroupImporter {
@@ -17,17 +21,19 @@ export class ServerGroupImporter {
     Presets.shades_classic
   );
 
-  public loadServerGroups(workbook: WorkBook): {
+  public loadServerGroups(workbook: ExcelJS.Workbook): {
     serverGroupList: ServerGroup[];
     ipOrNetowrkList: IpOrNetwork[];
   } {
-    const serverGroupSheet = workbook.Sheets["Servergroups"];
-    const serverGroupsData = utils.sheet_to_json(serverGroupSheet, {
-      // ignore header line
-      range: 2,
-    });
+    const serverGroupSheet = workbook.getWorksheet("Servergroups");
+    const serverGroupsData = serverGroupSheet.getRows(
+      rowRange.min,
+      rowRange.max
+    );
+    if (!serverGroupsData)
+      throw new Error("Failed to load Rows in Servergroups");
 
-    // load serverGroups and IPorNetworks
+    // Load serverGroups and IPorNetworks
     console.info("Loading ServerGroups...");
     this.progressBar.start(serverGroupsData.length, 0);
     try {
@@ -51,41 +57,46 @@ export class ServerGroupImporter {
     };
   }
 
-  private load(serverGroupsData: unknown[]) {
-    serverGroupsData.forEach((data: any, index, array) => {
+  private load(serverGroupsData: ExcelJS.Row[]) {
+    serverGroupsData.forEach((data, index, array) => {
       this.progressBar.update(index + 1);
 
+      const servergroupName = data
+        .getCell(columnNumber.Servergroupname)
+        .value?.toString()
+        .trim();
+
       // skip if name is empty
-      if (getColumnValue(data, "Servergroupname") === "") {
+      if (!servergroupName) {
         return;
       }
 
-      const name = getColumnValue(data, "Servergroupname");
-      const date = new Date(getColumnValue(data, "Date"));
-      const description = getColumnValue(data, "Description");
+      const name = servergroupName;
+      const date = new Date(getCellValueString(data, columnNumber.date));
+      const description = getCellValueString(data, columnNumber.description);
 
-      // ensure ServerGroup exists
-      let result = this.serverGroupList.find((value) => value.name === name);
-      if (!result) {
-        result = new ServerGroup(name, []);
-        this.serverGroupList.push(result);
+      // Ensure ServerGroup exists
+      let serverGroup = this.serverGroupList.find(
+        (value) => value.name === name
+      );
+      if (!serverGroup) {
+        serverGroup = new ServerGroup(name, []);
+        this.serverGroupList.push(serverGroup);
       }
-      const serverGroup = result;
 
-      // if IpOrNetowrk is defined, then create or set IpOrNetwork
+      // If IpOrNetwork is defined, then create or set IpOrNetwork
       // and create relation to ServerGroup
-      const ip = getColumnValue(data, "IP-Address or IP-Network");
+      const ip = getCellValueString(data, columnNumber.ipOrNetwork);
       if (ip) {
-        // create IpOrNetwork if not already present
-        let result = this.ipOrNetworkList.find((value) => value.getIp() === ip);
+        let ipOrNetwork = this.ipOrNetworkList.find(
+          (value) => value.getIp() === ip
+        );
 
-        if (!result) {
-          result = new IpOrNetwork(ip);
-          this.ipOrNetworkList.push(result);
+        if (!ipOrNetwork) {
+          ipOrNetwork = new IpOrNetwork(ip);
+          this.ipOrNetworkList.push(ipOrNetwork);
         }
-        const ipOrNetwork = result;
 
-        // create relation to ServerGroup
         serverGroup.members.push(
           new ServerGroupMember(ipOrNetwork, date, description)
         );
@@ -93,41 +104,49 @@ export class ServerGroupImporter {
     });
   }
 
-  private mapNestedGroups(serverGroupsData: unknown[]) {
+  private mapNestedGroups(serverGroupsData: ExcelJS.Row[]) {
     serverGroupsData.forEach((data, index) => {
       this.progressBar.update(index + 1);
 
-      const memberName = getColumnValue(data, "Membername");
+      const memberName = data
+        .getCell(columnNumber.membername)
+        .value?.toString()
+        .trim();
 
       // Skip if memberName is not defined
       if (!memberName) {
         return;
       }
 
-      // read serverGroup name from data
-      const name = getColumnValue(data, "Servergroupname");
-      const date = new Date(getColumnValue(data, "Date"));
-      const description = getColumnValue(data, "Description");
+      // Read serverGroup name from data
+      const servergroupName = getCellValueString(
+        data,
+        columnNumber.Servergroupname
+      );
+      const date = new Date(getCellValueString(data, columnNumber.date));
+      const description = getCellValueString(data, columnNumber.description);
 
-      // get serverGroup from list
+      // Get serverGroup from list
       const serverGroup = this.serverGroupList.find(
-        (value) => value.name === name
+        (value) => value.name === servergroupName
       );
 
-      // fail if serverGroup doesnt exist
+      // Fail if serverGroup doesn't exist
       if (!serverGroup) {
         throw new Error(
-          "Could not find ServerGroup " + name + " in serverGroupList."
+          "Could not find ServerGroup " +
+            servergroupName +
+            " in serverGroupList."
         );
       }
 
-      // get nested group by memberName
+      // Get nested group by memberName
       const member = this.serverGroupList.find((sg) => sg.name === memberName);
       if (!member) {
         throw new Error("ServerGroup " + memberName + " not defined!");
       }
 
-      // add group as member
+      // Add group as member
       serverGroup.members.push(
         new ServerGroupMember(member, date, description)
       );
