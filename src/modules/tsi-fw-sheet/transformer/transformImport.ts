@@ -91,7 +91,8 @@ function getHostGroup(
       {}
     );
   } else {
-    return getListOfHosts(source);
+    const result = getListOfHosts(source);
+    return result;
   }
 }
 

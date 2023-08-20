@@ -26,7 +26,8 @@ export class Bootstrapper {
 
   async run() {
     const test = new Module();
-    console.log((await test.import("/tmp/fw.xlsx")).rules.length);
+    //await test.easyLoopTest("/tmp/fw.xlsx");
+    await test.transformLoopTest("/tmp/fw.xlsx");
 
     try {
       await this.loadModules();

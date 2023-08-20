@@ -74,7 +74,13 @@ export class ServiceGroupImporter {
       const date = new Date(getCellValueString(data, columnNumber.date));
       const description = getCellValueString(data, columnNumber.description);
       const protocol = getCellValueString(data, columnNumber.protocol);
-      const port_range = getCellValueString(data, columnNumber.port_range);
+      let port_range: string | number = getCellValueString(
+        data,
+        columnNumber.port_range
+      );
+      port_range.match("^[1-9][0-9]*$")
+        ? (port_range = Number.parseInt(port_range))
+        : "";
 
       // Ensure ServiceGroup exists
       let serviceGroup = this.serviceGroupList.find(

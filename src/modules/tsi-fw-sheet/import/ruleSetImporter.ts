@@ -85,7 +85,14 @@ export class RuleSetImporter {
         serverGroups
       );
 
-      const portRange = getCellValueString(data, columnNumber.portOrMember);
+      let portRange: string | number = getCellValueString(
+        data,
+        columnNumber.portOrMember
+      );
+      portRange.match("^[1-9][0-9]*$")
+        ? (portRange = Number.parseInt(portRange))
+        : "";
+
       const protocol = getCellValueString(data, columnNumber.protocol);
       const serviceOrGroup = this.getServiceOrServiceGroup(
         portRange,
@@ -98,17 +105,11 @@ export class RuleSetImporter {
       const description = getCellValueString(data, columnNumber.description);
 
       // read comments
-      const protocolStack = getCellValueString(
-        data,
-        columnNumber.protocolStack
-      );
-      const category = getCellValueString(data, columnNumber.category);
-      const justification = getCellValueString(
-        data,
-        columnNumber.justification
-      );
-      const securedBy = getCellValueString(data, columnNumber.securedBy);
-      const dataClassification = getCellValueString(
+      const protocolStack = this.getComment(data, columnNumber.protocolStack);
+      const category = this.getComment(data, columnNumber.category);
+      const justification = this.getComment(data, columnNumber.justification);
+      const securedBy = this.getComment(data, columnNumber.securedBy);
+      const dataClassification = this.getComment(
         data,
         columnNumber.dataClassification
       );
@@ -131,6 +132,11 @@ export class RuleSetImporter {
     });
   }
 
+  private getComment(data: ExcelJS.Row, column: number) {
+    const result = getCellValueString(data, column).split(":")[1];
+    return result ? result.trim() : "";
+  }
+
   private loadSourceOrDestination(
     value: string,
     serverGroups: ServerGroup[]
@@ -147,7 +153,7 @@ export class RuleSetImporter {
   }
 
   private getServiceOrServiceGroup(
-    port_range: string,
+    port_range: string | number,
     protocol: string,
     serviceGroupList: ServiceGroup[]
   ): Service | ServiceGroup {
