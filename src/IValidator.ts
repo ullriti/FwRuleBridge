@@ -8,7 +8,7 @@ export interface IValidatorInfo {
 
 export interface IValidationResult {
   success: boolean;
-  message: string;
+  messages: string[];
 }
 
 export interface IValidator {

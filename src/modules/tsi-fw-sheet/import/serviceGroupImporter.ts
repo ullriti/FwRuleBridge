@@ -8,6 +8,7 @@ import {
   Servicegroups_ColumnNumber as columnNumber,
 } from "../utils/xlsxTemplate";
 import { ServiceGroupMember } from "../model/serviceGroupMember";
+import { serialize } from "v8";
 
 export class ServiceGroupImporter {
   private serviceGroupList = new Array<ServiceGroup>();
@@ -62,7 +63,7 @@ export class ServiceGroupImporter {
       this.progressBar.update(index + 1);
 
       const serviceGroupName = data
-        .getCell(columnNumber.Servicegroupname)
+        .getCell(columnNumber.servicegroupname)
         .value?.toString();
 
       // Skip if name is empty
@@ -73,6 +74,7 @@ export class ServiceGroupImporter {
       const name = serviceGroupName.trim();
       const date = new Date(getCellValueString(data, columnNumber.date));
       const description = getCellValueString(data, columnNumber.description);
+      const action = getCellValueString(data, columnNumber.action);
       const protocol = getCellValueString(data, columnNumber.protocol);
       let port_range: string | number = getCellValueString(
         data,
@@ -111,11 +113,31 @@ export class ServiceGroupImporter {
           );
         }
 
+        // remove service
+        if (action === "remove") {
+          if (!service)
+            throw new Error(
+              "Should remove ServiceGroup entry but doesnt exist: " +
+                port_range +
+                " " +
+                protocol +
+                "in group " +
+                serviceGroup.name
+            );
+          const index1 = serviceGroup.members.findIndex(
+            (entry) => entry.member === service
+          );
+          serviceGroup.members.splice(index1, 1);
+          return;
+        }
+
+        // create service if doesnt exist
         if (!service) {
           service = new Service(protocol, port_range);
           this.serviceList.push(service);
         }
 
+        // add service to servicegroup
         serviceGroup.members.push(
           new ServiceGroupMember(service, date, description)
         );
@@ -140,10 +162,11 @@ export class ServiceGroupImporter {
       // Read serviceGroup name from data
       const serviceGroupName = getCellValueString(
         data,
-        columnNumber.Servicegroupname
+        columnNumber.servicegroupname
       );
       const date = new Date(getCellValueString(data, columnNumber.date));
       const description = getCellValueString(data, columnNumber.description);
+      const action = getCellValueString(data, columnNumber.action);
 
       // Get serviceGroup from list
       const serviceGroup = this.serviceGroupList.find(
@@ -165,10 +188,22 @@ export class ServiceGroupImporter {
         throw new Error("ServiceGroup " + memberName + " not defined!");
       }
 
-      // Add group as member
-      serviceGroup.members.push(
-        new ServiceGroupMember(member, date, description)
-      );
+      // remove member from group
+      if (action === "remove") {
+        const memberIndex = serviceGroup.members.findIndex(
+          (sg) =>
+            sg.member instanceof ServiceGroup && sg.member.name === memberName
+        );
+        serviceGroup.members.splice(memberIndex, 1);
+        return;
+      }
+
+      // add member if not exist
+      if (serviceGroup.members.find((entry) => entry.member === member)) {
+        serviceGroup.members.push(
+          new ServiceGroupMember(member, date, description)
+        );
+      }
     });
   }
 }

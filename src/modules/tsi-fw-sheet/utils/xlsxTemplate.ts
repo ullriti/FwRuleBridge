@@ -26,7 +26,7 @@ export const Servicegroups_RowRange = {
 };
 
 export const Servicegroups_ColumnNumber = {
-  Servicegroupname: 2,
+  servicegroupname: 2,
   port_range: 3,
   protocol: 4,
   membername: 5,
@@ -41,7 +41,7 @@ export const Servergroups_RowRange = {
 };
 
 export const Servergroups_ColumnNumber = {
-  Servergroupname: 2,
+  servergroupname: 2,
   ipOrNetwork: 3,
   membername: 4,
   action: 5,

@@ -11,7 +11,7 @@ import { ServerGroup } from "../model/serverGroup";
 import { Service } from "../model/service";
 import { ServiceGroup } from "../model/serviceGroup";
 
-import { formatDate } from "../utils/helpers";
+import { formatDate2String } from "../utils/helpers";
 
 // Transforms an Application into a fwRuleBridgeRuleset
 export function transform(application: Application): fwRuleBridgeRuleset {
@@ -75,7 +75,7 @@ function getRuleTag(value: Rule) {
     Justification: value.justification,
     "Secured-By": value.securedBy,
     "Data-Classification": value.dataClassification,
-    Date: formatDate(value.date),
+    Date: formatDate2String(value.date),
   };
 }
 
@@ -185,13 +185,13 @@ function getNestedServices(
     if (!serviceExists(newService, services)) return [newService];
     return [];
   } else {
-    if (!descriptionBase) descriptionBase = `Group: ${service.name}`;
+    if (!descriptionBase) descriptionBase = `Group: ${service.name}, `;
     const result: fwRuleBridgeService[] = [];
     service.members.forEach((member) => {
       if (member.member instanceof Service) {
         const newService = createFwRuleBridgeService(
           member.member,
-          `${descriptionBase}, Description: ${member.description}`
+          `${descriptionBase}Description: ${member.description}`
         );
 
         if (!serviceExists(newService, services)) result.push(newService);

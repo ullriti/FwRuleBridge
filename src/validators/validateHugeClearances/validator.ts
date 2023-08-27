@@ -5,16 +5,19 @@ import {
 } from "../../IValidator";
 import { Ruleset } from "../../model/ruleset";
 
-export default class TestValidator implements IValidator {
+export default class Validator implements IValidator {
   public info(): IValidatorInfo {
     return {
-      name: "Test",
-      description: "asdasd",
+      name: "HugeClearances-Validation",
+      description: "checks if to huge clearances are defined",
       version: "1.0.0",
     };
   }
 
   public validate(rulset: Ruleset): IValidationResult {
-    throw new Error("Method not implemented.");
+    return {
+      success: true,
+      messages: ["nothing to do"],
+    };
   }
 }

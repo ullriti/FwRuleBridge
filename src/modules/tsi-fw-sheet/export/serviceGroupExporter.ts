@@ -4,7 +4,7 @@ import {
   Servicegroups_ColumnNumber as columNumber,
   Servicegroups_RowRange as rowRange,
 } from "../utils/xlsxTemplate";
-import { formatDate } from "../utils/helpers";
+import { formatDate2String } from "../utils/helpers";
 
 export function writeServiceGroups(
   workbook: ExcelJS.Workbook,
@@ -15,10 +15,10 @@ export function writeServiceGroups(
   serviceGroupList.forEach((value) => {
     // if this is an empty group, then create one line with description
     if (value.members.length === 0) {
-      worksheet.getRow(row).getCell(columNumber.Servicegroupname).value =
+      worksheet.getRow(row).getCell(columNumber.servicegroupname).value =
         value.name;
       worksheet.getRow(row).getCell(columNumber.action).value = "add";
-      worksheet.getRow(row).getCell(columNumber.date).value = formatDate(
+      worksheet.getRow(row).getCell(columNumber.date).value = formatDate2String(
         new Date()
       );
       worksheet.getRow(row).getCell(columNumber.description).value =
@@ -27,7 +27,7 @@ export function writeServiceGroups(
     }
 
     value.members.forEach((member) => {
-      worksheet.getRow(row).getCell(columNumber.Servicegroupname).value =
+      worksheet.getRow(row).getCell(columNumber.servicegroupname).value =
         value.name;
       if (member.member instanceof ServiceGroup) {
         worksheet.getRow(row).getCell(columNumber.port_range).value = "";
@@ -42,7 +42,7 @@ export function writeServiceGroups(
         worksheet.getRow(row).getCell(columNumber.membername).value = "";
       }
       worksheet.getRow(row).getCell(columNumber.action).value = "add";
-      worksheet.getRow(row).getCell(columNumber.date).value = formatDate(
+      worksheet.getRow(row).getCell(columNumber.date).value = formatDate2String(
         member.date
       );
       worksheet.getRow(row).getCell(columNumber.description).value =

@@ -114,22 +114,45 @@ export class RuleSetImporter {
         columnNumber.dataClassification
       );
 
-      // create and append rule
-      this.ruleList.push(
-        new Rule(
-          sourceObject,
-          destinationObject,
-          serviceOrGroup,
-          date,
-          description,
-          protocolStack,
-          category,
-          justification,
-          securedBy,
-          dataClassification
-        )
+      const newRule = new Rule(
+        sourceObject,
+        destinationObject,
+        serviceOrGroup,
+        date,
+        description,
+        protocolStack,
+        category,
+        justification,
+        securedBy,
+        dataClassification
       );
+
+      // if action remove then remove the rule
+      // else append the rule
+      const action = getCellValueString(data, columnNumber.action);
+      if (action === "remove") {
+        const index = this.ruleList.findIndex((rule) =>
+          this.compareRules(rule, newRule)
+        );
+        if (index) {
+          this.ruleList.splice(index, 1);
+        } else {
+          throw new Error(
+            "Could not find corresponding row to remove: " + newRule
+          );
+        }
+      } else {
+        this.ruleList.push(newRule);
+      }
     });
+  }
+
+  private compareRules(rule1: Rule, rule2: Rule): boolean {
+    return (
+      rule1.source === rule2.source &&
+      rule1.target === rule2.target &&
+      rule1.service === rule2.service
+    );
   }
 
   private getComment(data: ExcelJS.Row, column: number) {
@@ -141,15 +164,24 @@ export class RuleSetImporter {
     value: string,
     serverGroups: ServerGroup[]
   ): IpOrNetwork | ServerGroup {
-    const sg = serverGroups.find((sg) => sg.name === value);
-
     // check if value is an serverGroup
     // if yes, return serverGroup
-    // if not, create and return IpOrNetwork object
+    const sg = serverGroups.find((sg) => sg.name === value);
     if (sg) {
       return sg;
     }
-    return new IpOrNetwork(value);
+
+    // check if ipOrNetwork exists and return if yes
+    const finding = this.updatedIpOrNetworkList.find(
+      (entry) => entry.getIp() === value
+    );
+    if (finding) return finding;
+
+    // create new ipOrNetowrk, append it to the list and return it
+    const newIpOrNetwork = new IpOrNetwork(value);
+    this.updatedIpOrNetworkList.push(newIpOrNetwork);
+
+    return newIpOrNetwork;
   }
 
   private getServiceOrServiceGroup(
@@ -171,7 +203,7 @@ export class RuleSetImporter {
     }
 
     if (protocol === "TCP" || protocol === "UDP" || protocol === "ICMP") {
-      // check fi service already exist
+      // check if service already exist
       let result: Service | undefined;
       if (protocol === "ICMP") {
         result = this.updatedServiceList.find(

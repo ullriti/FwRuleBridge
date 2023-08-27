@@ -34,11 +34,15 @@ export function init(
       "Reads a given input with the inputModule and transforms it to a output by using outputModule"
     )
     .summary("transform ruleset")
-    .option("-S, --skip-validation", "skip validation of the ruleset")
+    .option("-S, --skipValidation", "skip validation of the ruleset")
     .showHelpAfterError(true)
-    .action((args: string[]) => {
-      console.log("transform");
-    });
+    .action(
+      async (inputModule, input, outputModule, output, options, command) => {
+        await bootstrapper.runModule(inputModule, input, "import");
+        if (!options.skipValidation) bootstrapper.runAllValidators();
+        await bootstrapper.runModule(outputModule, output, "export");
+      }
+    );
 
   console.debug(
     "[DEBUG] Command " +

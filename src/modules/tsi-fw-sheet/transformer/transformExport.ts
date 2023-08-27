@@ -12,6 +12,7 @@ import { Service } from "../model/service";
 import { ServerGroupMember } from "../model/serverGroupMember";
 import { IpOrNetwork } from "../model/ipOrNetwork";
 import { ServiceGroupMember } from "../model/serviceGroupMember";
+import { parseString2Date } from "../utils/helpers";
 
 const serverGroups: ServerGroup[] = [];
 const serviceGroups: ServiceGroup[] = [];
@@ -61,6 +62,7 @@ function getRules(rules: fwRuleBridgeRule[]) {
         const newRule = createRule(source, target, s, rule);
         isUnique(newRule) ? transformedRules.push(newRule) : "";
       });
+      console.log(service);
     } else if (service instanceof ServiceGroup) {
       const newRule = createRule(source, target, service, rule);
       isUnique(newRule) ? transformedRules.push(newRule) : "";
@@ -119,7 +121,7 @@ function createRule(
     source,
     target,
     service,
-    new Date(rule.tags["Date"]),
+    parseString2Date(rule.tags["Date"]),
     rule.description,
     rule.tags["Protocol-Stack"],
     rule.category,
@@ -200,15 +202,21 @@ function getServiceGroups(rules: fwRuleBridgeRule[]) {
 
       const newSGmembers: ServiceGroupMember[] = [];
       if (service.protocol === "all") {
-        const protos: ("TCP" | "UDP" | "ICMP")[] = ["TCP", "UDP", "ICMP"];
-        protos.forEach((proto) =>
+        // create service for TCP and UDP
+        const protos: ("TCP" | "UDP")[] = ["TCP", "UDP"];
+        protos.forEach((proto) => {
+          const portRange = "0 - 65535";
           newSGmembers.push(
             new ServiceGroupMember(
               new Service(proto, portRange),
               new Date(),
               description
             )
-          )
+          );
+        });
+        // create service for ICMP
+        newSGmembers.push(
+          new ServiceGroupMember(new Service("ICMP"), new Date(), description)
         );
       } else {
         newSGmembers.push(

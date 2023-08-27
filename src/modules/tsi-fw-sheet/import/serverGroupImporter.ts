@@ -8,6 +8,7 @@ import {
   Servergroups_ColumnNumber as columnNumber,
 } from "../utils/xlsxTemplate";
 import { ServerGroupMember } from "../model/serverGroupMember";
+import { equal } from "assert";
 
 export class ServerGroupImporter {
   private serverGroupList = new Array<ServerGroup>();
@@ -62,7 +63,7 @@ export class ServerGroupImporter {
       this.progressBar.update(index + 1);
 
       const servergroupName = data
-        .getCell(columnNumber.Servergroupname)
+        .getCell(columnNumber.servergroupname)
         .value?.toString()
         .trim();
 
@@ -87,19 +88,47 @@ export class ServerGroupImporter {
       // If IpOrNetwork is defined, then create or set IpOrNetwork
       // and create relation to ServerGroup
       const ip = getCellValueString(data, columnNumber.ipOrNetwork);
+      const action = getCellValueString(data, columnNumber.action);
       if (ip) {
-        let ipOrNetwork = this.ipOrNetworkList.find(
+        const index1 = this.ipOrNetworkList.findIndex(
           (value) => value.getIp() === ip
         );
+        let ipOrNetwork: IpOrNetwork;
 
-        if (!ipOrNetwork) {
-          ipOrNetwork = new IpOrNetwork(ip);
-          this.ipOrNetworkList.push(ipOrNetwork);
+        if (action === "remove" && !index1) {
+          throw new Error(
+            "Should remove ServerGroup entry but doesnt exist: " +
+              ip +
+              "in group " +
+              serverGroup.name
+          );
         }
 
-        serverGroup.members.push(
-          new ServerGroupMember(ipOrNetwork, date, description)
+        if (index1 === -1) {
+          ipOrNetwork = new IpOrNetwork(ip);
+          this.ipOrNetworkList.push(ipOrNetwork);
+        } else if (action === "remove") {
+          // remove as member of the servergroup
+          const index2 = serverGroup.members.findIndex(
+            (member) => member.member === ipOrNetwork
+          );
+          serverGroup.members.splice(index2, 1);
+          return;
+        } else {
+          ipOrNetwork = this.ipOrNetworkList[index1];
+        }
+
+        // add member if not exist
+        const test = serverGroup.members.find(
+          (member) => member.member === ipOrNetwork
         );
+        if (test) {
+          return;
+        } else {
+          serverGroup.members.push(
+            new ServerGroupMember(ipOrNetwork, date, description)
+          );
+        }
       }
     });
   }
@@ -121,12 +150,13 @@ export class ServerGroupImporter {
       // Read serverGroup name from data
       const servergroupName = getCellValueString(
         data,
-        columnNumber.Servergroupname
+        columnNumber.servergroupname
       );
       const date = new Date(getCellValueString(data, columnNumber.date));
       const description = getCellValueString(data, columnNumber.description);
+      const action = getCellValueString(data, columnNumber.action);
 
-      // Get serverGroup from list
+      // Get serverGroup and index from list
       const serverGroup = this.serverGroupList.find(
         (value) => value.name === servergroupName
       );
@@ -146,10 +176,22 @@ export class ServerGroupImporter {
         throw new Error("ServerGroup " + memberName + " not defined!");
       }
 
-      // Add group as member
-      serverGroup.members.push(
-        new ServerGroupMember(member, date, description)
-      );
+      // remove member from group
+      if (action === "remove") {
+        const memberIndex = serverGroup.members.findIndex(
+          (sg) =>
+            sg.member instanceof ServerGroup && sg.member.name === memberName
+        );
+        serverGroup.members.splice(memberIndex, 1);
+        return;
+      }
+
+      // add member if not exist
+      if (serverGroup.members.find((entry) => entry.member === member)) {
+        serverGroup.members.push(
+          new ServerGroupMember(member, date, description)
+        );
+      }
     });
   }
 }

@@ -4,7 +4,7 @@ import {
   Servergroups_ColumnNumber as columNumber,
   Servergroups_RowRange as rowRange,
 } from "../utils/xlsxTemplate";
-import { formatDate } from "../utils/helpers";
+import { formatDate2String } from "../utils/helpers";
 
 export function writeServerGroups(
   workbook: ExcelJS.Workbook,
@@ -15,10 +15,10 @@ export function writeServerGroups(
   serverGroupList.forEach((value) => {
     // if this is an empty group, then create one line with description
     if (value.members.length === 0) {
-      worksheet.getRow(row).getCell(columNumber.Servergroupname).value =
+      worksheet.getRow(row).getCell(columNumber.servergroupname).value =
         value.name;
       worksheet.getRow(row).getCell(columNumber.action).value = "add";
-      worksheet.getRow(row).getCell(columNumber.date).value = formatDate(
+      worksheet.getRow(row).getCell(columNumber.date).value = formatDate2String(
         new Date()
       );
       worksheet.getRow(row).getCell(columNumber.description).value =
@@ -27,7 +27,7 @@ export function writeServerGroups(
     }
 
     value.members.forEach((member) => {
-      worksheet.getRow(row).getCell(columNumber.Servergroupname).value =
+      worksheet.getRow(row).getCell(columNumber.servergroupname).value =
         value.name;
       if (member.member instanceof ServerGroup) {
         worksheet.getRow(row).getCell(columNumber.ipOrNetwork).value = "";
@@ -39,7 +39,7 @@ export function writeServerGroups(
         worksheet.getRow(row).getCell(columNumber.membername).value = "";
       }
       worksheet.getRow(row).getCell(columNumber.action).value = "add";
-      worksheet.getRow(row).getCell(columNumber.date).value = formatDate(
+      worksheet.getRow(row).getCell(columNumber.date).value = formatDate2String(
         member.date
       );
       worksheet.getRow(row).getCell(columNumber.description).value =

@@ -136,6 +136,6 @@ export default class Module implements IModule {
     writeServiceGroups(templateWorkbook, serviceGroups);
     writeRuleSet(templateWorkbook, application.ruleset);
 
-    await templateWorkbook.xlsx.writeFile(moduleInput);
+    await templateWorkbook.xlsx.writeFile(moduleInput, { useStyles: true });
   }
 }

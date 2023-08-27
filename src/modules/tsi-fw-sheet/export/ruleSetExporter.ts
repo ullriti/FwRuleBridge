@@ -8,7 +8,7 @@ import {
   Ruleset_ColumnNumber as columNumber,
   Ruleset_RowRange as rowRange,
 } from "../utils/xlsxTemplate";
-import { formatDate } from "../utils/helpers";
+import { formatDate2String } from "../utils/helpers";
 
 export function writeRuleSet(workbook: ExcelJS.Workbook, ruleset: Rule[]) {
   const worksheet: ExcelJS.Worksheet =
@@ -22,7 +22,8 @@ export function writeRuleSet(workbook: ExcelJS.Workbook, ruleset: Rule[]) {
       getGroupOrValue(value.target);
     setService(value.service, row, worksheet);
     worksheet.getRow(row).getCell(columNumber.action).value = "add";
-    worksheet.getRow(row).getCell(columNumber.date).value = formatDate(
+    worksheet.getRow(row).getCell(columNumber.date).numFmt = "dd.mm.yyyy";
+    worksheet.getRow(row).getCell(columNumber.date).value = formatDate2String(
       value.date
     );
     worksheet.getRow(row).getCell(columNumber.description).value =

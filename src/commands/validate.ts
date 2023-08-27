@@ -24,7 +24,9 @@ export function init(
     .addOption(
       new Option(
         "-u, --use <validators>",
-        "comma separated list of validators which should be used"
+        "comma separated list of validators which should be used (choices: " +
+          availableValidators.map((value) => value.name).toString() +
+          ")"
       ).argParser((input, _previous) => {
         input.split(",").forEach((value) => {
           if (!availableValidators.map((value) => value.name).includes(value)) {
@@ -45,8 +47,9 @@ export function init(
     )
     .summary("validate ruleset")
     .showHelpAfterError(true)
-    .action((inputModule, input, options, command) => {
-      bootstrapper.runModule(inputModule, input, "import");
+    .action(async (inputModule, input, options, command) => {
+      await bootstrapper.runModule(inputModule, input, "import");
+      bootstrapper.runAllValidators();
     });
 
   console.debug(

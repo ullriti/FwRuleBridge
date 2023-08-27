@@ -25,10 +25,6 @@ export class Bootstrapper {
   private ruleset: Ruleset = new Ruleset("", [], {});
 
   async run() {
-    const test = new Module();
-    //await test.easyLoopTest("/tmp/fw.xlsx");
-    await test.transformLoopTest("/tmp/fw.xlsx");
-
     try {
       await this.loadModules();
       await this.loadValidators();
@@ -39,32 +35,27 @@ export class Bootstrapper {
     }
   }
 
-  public runAllValidators(): IValidationResult[] {
-    const validationResults: IValidationResult[] = [];
-
-    console.debug("[DEBUG] running all validators");
-    this.availableValidators.forEach((validator) => {
-      console.debug("[DEBUG] run validator " + validator.info().name);
-      validationResults.push(validator.validate(this.ruleset));
-    });
-
-    return validationResults;
+  public getRuleset(): Ruleset {
+    return this.ruleset;
   }
 
-  public runValidator(validatorName: string): IValidationResult {
+  public runAllValidators() {
+    console.info("[INFO] running all validators");
+    this.availableValidators.forEach((validator) => {
+      this.runValidator(validator.info().name);
+    });
+  }
+
+  public runValidator(validatorName: string) {
     const validator = this.availableValidators.filter(
       (validator) => validator.info().name === validatorName
     );
 
     if (validator.length < 1) {
-      console.debug("[DEBUG] unkown validator with name: " + validatorName);
-      return {
-        success: false,
-        message: "unknown validator",
-      };
+      console.warn("[WARN] unkown validator with name: " + validatorName);
     } else if (validator.length > 1) {
-      console.debug(
-        "[DEBUG] multiple validators with name " + validatorName + " found"
+      console.warn(
+        "[WARN] multiple validators with name " + validatorName + " found"
       );
       validator.forEach((module) =>
         console.debug(
@@ -74,19 +65,20 @@ export class Bootstrapper {
             module.info().description
         )
       );
-      return {
-        success: false,
-        message: "duplicated validator names",
-      };
     }
 
-    console.debug(
-      "[DEBUG] running validator " +
-        validatorName +
-        " => " +
-        validator[0].info().description
+    console.info(`[INFO] running validator ${validatorName}`);
+    const result = validator[0].validate(this.ruleset);
+    console.info(
+      `[${
+        result.success ? "INFO" : "WARN"
+      }] Validator ${validatorName} returned with status ${
+        result.success ? "ok" : "error (see details below)"
+      }.`
     );
-    return validator[0].validate(this.ruleset);
+    if (!result.success) {
+      result.messages.forEach((message) => console.info(`[WARN] ${message}`));
+    }
   }
 
   public async runModule(
@@ -104,12 +96,7 @@ export class Bootstrapper {
       throw Error("multiple modules with name " + moduleName + " found");
     }
 
-    console.debug(
-      "[DEBUG] running module " +
-        moduleName +
-        " => " +
-        module[0].info().description
-    );
+    console.info(`[INFO] running module ${moduleName} in ${mode}-Mode`);
     switch (mode) {
       case "import":
         this.ruleset = await module[0].import(moduleArguments);
