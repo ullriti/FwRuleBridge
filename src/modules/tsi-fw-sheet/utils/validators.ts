@@ -8,5 +8,5 @@ export function isValidPortOrPortRange(portRange: string | number): boolean {
   if (typeof portRange === "number") {
     return 0 < portRange && portRange < 65536;
   }
-  return /^(\d+)(-\d+)?$/.test(portRange);
+  return /^(\d+)(\ *-\ *\d+)?$/.test(portRange);
 }

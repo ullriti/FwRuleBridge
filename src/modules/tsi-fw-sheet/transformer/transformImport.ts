@@ -143,7 +143,7 @@ function createFwRuleBridgeService(
     service.port_range || (service.protocol === "ICMP" ? "0" : "");
   const [fromPort, toPort] =
     typeof portRange === "string"
-      ? portRange.split("-").map(Number)
+      ? portRange.split("-").map((value) => Number.parseInt(value.trim()))
       : [portRange, portRange];
 
   return new fwRuleBridgeService(
