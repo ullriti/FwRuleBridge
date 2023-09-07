@@ -66,17 +66,27 @@ function buildTransformedRules(sgRuleList: SecurityGroupRule[]) {
       }
     }
 
-    transformedRules.push(
-      new fwRuleBridgeRule(
-        name,
-        category,
-        source,
-        target,
-        service,
-        description,
-        tags
-      )
+    // create rule if not already exist
+    // this is possible by an internal rule
+    const finding = transformedRules.find(
+      (value) =>
+        value.source === source &&
+        value.target === target &&
+        value.service === service
     );
+    if (!finding) {
+      transformedRules.push(
+        new fwRuleBridgeRule(
+          name,
+          category,
+          source,
+          target,
+          service,
+          description,
+          tags
+        )
+      );
+    }
   });
 }
 
@@ -147,14 +157,16 @@ function getHostGroup(
         rule.referencedSecurityGroupId,
         true,
         [],
-        {}
+        { type: "referencedSecurityGroupId" }
       );
     }
   }
 
   // create hostgroup from prefixListId
   else if (rule.prefixListId) {
-    result = new fwRuleBridgeHostGroup(rule.prefixListId, true, [], {});
+    result = new fwRuleBridgeHostGroup(rule.prefixListId, true, [], {
+      type: "prefixListId",
+    });
   }
 
   // create hostgroup from securityGroup
