@@ -187,7 +187,7 @@ export class ServerGroupImporter {
       }
 
       // add member if not exist
-      if (serverGroup.members.find((entry) => entry.member === member)) {
+      if (!serverGroup.members.find((entry) => entry.member === member)) {
         serverGroup.members.push(
           new ServerGroupMember(member, date, description)
         );

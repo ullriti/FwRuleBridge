@@ -239,7 +239,9 @@ function buildHostGroupAndCidrIpv4Lists(
       if (!sg) {
         throw new Error("Security Group not found with name: " + name);
       }
-      sgUsage[sg.ressourceName].push(cidrIpv4);
+      sgUsage[sg.ressourceName]
+        ? sgUsage[sg.ressourceName].push(cidrIpv4)
+        : (sgUsage[sg.ressourceName] = [cidrIpv4]);
     });
   });
 

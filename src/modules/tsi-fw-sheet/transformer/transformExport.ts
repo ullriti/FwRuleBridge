@@ -121,7 +121,7 @@ function createRule(
     source,
     target,
     service,
-    parseString2Date(rule.tags["Date"]),
+    rule.tags["Date"] ? parseString2Date(rule.tags["Date"]) : new Date(),
     rule.description,
     rule.tags["Protocol-Stack"],
     rule.category,

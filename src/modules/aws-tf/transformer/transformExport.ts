@@ -1,5 +1,8 @@
 import { CidrIpv4 as fwRuleBridgeCidrIpv4 } from "../../../model/cidrIpv4";
-import { HostGroup as fwRuleBridgeHostGroup } from "../../../model/hostGroup";
+import {
+  HostGroup,
+  HostGroup as fwRuleBridgeHostGroup,
+} from "../../../model/hostGroup";
 import { Rule as fwRuleBridgeRule } from "../../../model/rule";
 import { Ruleset as fwRuleBridgeRuleset } from "../../../model/ruleset";
 import { Service as fwRuleBridgeService } from "../../../model/service";
@@ -65,7 +68,7 @@ function getSecurityGroup(hostgroup: fwRuleBridgeHostGroup): SecurityGroup {
   }
 
   // create security group
-  const name = hostgroup.name;
+  const name = hostgroup.name.split("/")[0];
   const tags = hostgroup.tags;
   const newSG = new SecurityGroup(name, tags);
   const keys = Object.keys(hostgroup.tags);
@@ -88,29 +91,25 @@ function createAwsInstanceAndRelation2SG(
   sg: SecurityGroup
 ) {
   hostgroup.members.forEach((member) => {
-    if (member instanceof fwRuleBridgeHostGroup) {
+    if (member instanceof HostGroup) {
       createAwsInstanceAndRelation2SG(member, sg);
     } else {
-      const ip = member.cidrIpv4;
-      const name = member.description;
+      const ip = member.cidrIpv4.split("/")[0];
+      const name = member.description || ip;
 
       const finding = instanceList.find(
-        (instance) => instance.ressourceName === name
+        (instance) => instance.privateIp === ip
       );
       if (finding) {
-        if (finding.privateIp !== ip)
-          throw new Error(
-            "Got two instances with name " +
-              name +
-              " but two different IPs: " +
-              ip +
-              " and " +
-              finding.privateIp
+        if (
+          !finding.vpcSecurityGroupIds.find(
+            (id) => id === "aws_security_group." + sg.ressourceName + ".id"
+          )
+        ) {
+          finding.vpcSecurityGroupIds.push(
+            "aws_security_group." + sg.ressourceName + ".id"
           );
-
-        finding.vpcSecurityGroupIds.push(
-          "aws_security_group." + sg.ressourceName + ".id"
-        );
+        }
       } else {
         instanceList.push(
           new AwsInstance(name, ip, [

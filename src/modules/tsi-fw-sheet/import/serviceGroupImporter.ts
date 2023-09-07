@@ -199,7 +199,7 @@ export class ServiceGroupImporter {
       }
 
       // add member if not exist
-      if (serviceGroup.members.find((entry) => entry.member === member)) {
+      if (!serviceGroup.members.find((entry) => entry.member === member)) {
         serviceGroup.members.push(
           new ServiceGroupMember(member, date, description)
         );
