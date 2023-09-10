@@ -21,12 +21,6 @@ export function transform(ruleset: fwRuleBridgeRuleset): {
 } {
   const rules = ruleset.rules;
 
-  // alle Regeln nacheinander laden und anhand der Regeln die Listen erstellen
-  // Application Name und Classification als Tags schreiben
-  // AWS Instance Ressource Namen stehen in der CIDR Description
-  // Host-Group Namen === Security-Group Name
-  // Validierung das nicht zu viele Security-Groupen pro Host definiert werden
-
   rules.forEach((rule) => {
     // set source and target
     switch (rule.category) {

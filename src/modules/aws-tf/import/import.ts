@@ -34,6 +34,7 @@ export async function loadTfFiles(
   importRules("ingress", ingressRules || []);
   importRules("egress", egressRules || []);
 
+  console.log(JSON.stringify(json, null, 2));
   return [instanceList, securityGroupList, sgRuleList];
 }
 
