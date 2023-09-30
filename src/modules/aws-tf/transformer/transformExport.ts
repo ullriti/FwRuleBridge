@@ -84,7 +84,7 @@ function createAwsInstanceAndRelation2SG(
   hostgroup: fwRuleBridgeHostGroup,
   sg: SecurityGroup
 ) {
-  hostgroup.members.forEach((member) => {
+  (hostgroup.members || []).forEach((member) => {
     if (member instanceof HostGroup) {
       createAwsInstanceAndRelation2SG(member, sg);
     } else {

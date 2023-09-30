@@ -56,13 +56,11 @@ function getRules(rules: fwRuleBridgeRule[]) {
     const source = getSourceOrTarget(rule.source);
     const target = getSourceOrTarget(rule.target);
     const service = getService(rule.service);
-
     if (!(service instanceof ServiceGroup) && service.length !== 1) {
       service.forEach((s) => {
         const newRule = createRule(source, target, s, rule);
         isUnique(newRule) ? transformedRules.push(newRule) : "";
       });
-      console.log(service);
     } else if (service instanceof ServiceGroup) {
       const newRule = createRule(source, target, service, rule);
       isUnique(newRule) ? transformedRules.push(newRule) : "";
@@ -268,7 +266,10 @@ function getServerGroupsOfEntry(group: fwRuleBridgeHostGroup) {
   if (serverGroups.find((value) => value.name === group.name)) return [];
 
   // if external then return empty group
-  if (group.external) return [new ServerGroup(group.name, [])];
+  if (group.external) {
+    serverGroups.push(new ServerGroup(group.name, []));
+    return;
+  }
 
   const members = getServerGroupMembers(group);
 

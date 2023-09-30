@@ -134,11 +134,12 @@ export class RuleSetImporter {
         const index = this.ruleList.findIndex((rule) =>
           this.compareRules(rule, newRule)
         );
-        if (index) {
+        if (index >= 0) {
           this.ruleList.splice(index, 1);
         } else {
           throw new Error(
-            "Could not find corresponding row to remove: " + newRule
+            "Could not find corresponding row to remove: " +
+              JSON.stringify(newRule)
           );
         }
       } else {

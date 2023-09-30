@@ -11,5 +11,5 @@ export async function writeTfFiles(
   console.info("Print Export-Date which should be written to " + output);
   console.info(instanceList);
   console.info(securityGroupList);
-  console.info(sgRuleList.filter((value) => value.fromPort === 22));
+  console.info(sgRuleList);
 }

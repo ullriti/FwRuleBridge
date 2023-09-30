@@ -180,7 +180,7 @@ function getHostGroup(
 
   // fail if result is not defined
   if (!result) {
-    throw new Error("Rule not valid: " + rule);
+    throw new Error("Rule not valid: " + JSON.stringify(rule));
   }
 
   // define source and target by using rule category
@@ -247,7 +247,7 @@ function buildHostGroupAndCidrIpv4Lists(
 
   // create host groups and add name and description (if exists) as tag
   securityGroupList.forEach((sg) => {
-    const tags = sg.tags;
+    const tags = sg.tags || [];
     sg.description ? (tags["Description"] = sg.description) : "";
     sg.name ? (tags["Name"] = sg.name) : "";
     hostGroupList.push(

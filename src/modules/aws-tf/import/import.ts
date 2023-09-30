@@ -34,7 +34,6 @@ export async function loadTfFiles(
   importRules("ingress", ingressRules || []);
   importRules("egress", egressRules || []);
 
-  console.log(JSON.stringify(json, null, 2));
   return [instanceList, securityGroupList, sgRuleList];
 }
 
@@ -55,8 +54,13 @@ function importAwsInstances(instances: { [x: string]: any[] }) {
   keys.forEach((key) => {
     const name = key;
     const attributes = instances[key][0];
-    const security_groups = attributes.security_groups.map(
+    const security_groups = (attributes.security_groups || []).map(
       (value: string) => value.split("{")[1].split("}")[0]
+    );
+    security_groups.push(
+      ...(attributes.vpc_security_group_ids || []).map(
+        (value: string) => value.split("{")[1].split("}")[0]
+      )
     );
     const newInstance = new AwsInstance(
       name,
