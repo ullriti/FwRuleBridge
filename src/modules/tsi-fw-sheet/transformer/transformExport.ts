@@ -29,7 +29,7 @@ export function transform(ruleset: fwRuleBridgeRuleset): {
   return {
     application: new Application(
       ruleset.name,
-      ruleset.tags["Application Classification"],
+      ruleset.tags["applicationClassification"],
       transformedRules
     ),
     serviceGroups: serviceGroups,

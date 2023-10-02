@@ -17,7 +17,7 @@ import { formatDate2String } from "../utils/helpers";
 export function transform(application: Application): fwRuleBridgeRuleset {
   // Extract application's classification as tags
   const rulesetTags = {
-    "Application Classification": application.classification,
+    applicationClassification: application.classification,
   };
 
   // Create an array to store transformed rules

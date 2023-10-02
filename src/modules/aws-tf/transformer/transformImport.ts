@@ -110,7 +110,7 @@ function checkAndSetApplicationInfo(rule: SecurityGroupRule) {
   );
   if (classification) {
     const value = tags[classification];
-    switch (value) {
+    switch (value.toLowerCase()) {
       case "public":
         applicationClassification = "public";
         break;

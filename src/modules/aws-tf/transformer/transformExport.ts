@@ -177,18 +177,14 @@ function createRule(
   description ? (newRule.description = description) : "";
 
   const source = type === "ingress" ? rule.source : rule.target;
-  if (source.external) {
-    if (isCidrIpv4(source.members)) {
-      newRule.cidrIpv4 = (source.members[0] as fwRuleBridgeCidrIpv4).cidrIpv4;
-    } else {
-      if (source.tags["type"] === "prefixListId") {
-        newRule.prefixListId = source.name;
-      } else {
-        newRule.referencedSecurityGroupId = source.name;
-      }
-    }
+  if (isCidrIpv4(source.members)) {
+    newRule.cidrIpv4 = (source.members[0] as fwRuleBridgeCidrIpv4).cidrIpv4;
   } else {
-    newRule.referencedSecurityGroupId = source.name;
+    if (source.tags["type"] === "prefixListId") {
+      newRule.prefixListId = source.name;
+    } else {
+      newRule.referencedSecurityGroupId = source.name;
+    }
   }
 
   sgRuleList.push(newRule);
